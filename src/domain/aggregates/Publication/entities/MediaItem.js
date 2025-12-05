@@ -2,7 +2,7 @@
 class MediaItem {
   constructor(id, publicationId, type, url, filename, size, order = 0) {
     this.validate(id, publicationId, type, url, filename, size);
-    
+
     this._id = id;
     this._publicationId = publicationId;
     this._type = type; // 'image' | 'video'
@@ -31,8 +31,12 @@ class MediaItem {
     if (!filename || typeof filename !== 'string') {
       throw new Error('MediaItem requiere un filename válido');
     }
-    if (!size || typeof size !== 'number' || size <= 0) {
-      throw new Error('MediaItem requiere un size válido mayor a 0');
+    // Size validation - allow null, undefined, or valid numbers (including strings that can be parsed)
+    if (size !== null && size !== undefined) {
+      const numSize = typeof size === 'string' ? parseInt(size, 10) : size;
+      if (isNaN(numSize) || numSize < 0) {
+        throw new Error('MediaItem size debe ser un número válido');
+      }
     }
   }
 
@@ -53,7 +57,7 @@ class MediaItem {
     if (!publicId || typeof publicId !== 'string') {
       throw new Error('CloudinaryPublicId debe ser válido');
     }
-    
+
     this._cloudinaryPublicId = publicId;
     this._metadata = { ...this._metadata, ...metadata };
   }
@@ -62,7 +66,7 @@ class MediaItem {
     if (typeof newOrder !== 'number' || newOrder < 0) {
       throw new Error('El orden debe ser un número mayor o igual a 0');
     }
-    
+
     this._order = newOrder;
   }
 
@@ -70,7 +74,7 @@ class MediaItem {
     if (this._type !== 'image') {
       throw new Error('Solo las imágenes pueden tener dimensiones');
     }
-    
+
     this._metadata.width = width;
     this._metadata.height = height;
   }
@@ -79,7 +83,7 @@ class MediaItem {
     if (this._type !== 'video') {
       throw new Error('Solo los videos pueden tener duración');
     }
-    
+
     this._metadata.duration = duration;
   }
 
