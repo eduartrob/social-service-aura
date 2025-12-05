@@ -361,15 +361,15 @@ class SequelizePublicationRepository extends IPublicationRepository {
           publicationData.id,
           mediaData.type,
           mediaData.url,
-          mediaData.filename,
+          mediaData.original_name, // ✅ CORREGIDO: usar original_name en vez de filename
           mediaData.size,
           mediaData.order_position
         );
 
         // Restaurar estado del media item
         mediaItem._createdAt = mediaData.created_at;
-        if (mediaData.cloudinary_public_id) {
-          mediaItem._cloudinaryPublicId = mediaData.cloudinary_public_id;
+        if (mediaData.public_id) {
+          mediaItem._cloudinaryPublicId = mediaData.public_id;
         }
         if (mediaData.metadata) {
           mediaItem._metadata = mediaData.metadata;
@@ -484,10 +484,10 @@ class SequelizePublicationRepository extends IPublicationRepository {
         post_id: publication.id.value,
         type: mediaItem.type,
         url: mediaItem.url,
-        filename: mediaItem.filename,
+        original_name: mediaItem.filename, // ✅ CORREGIDO: mapear a original_name
         size: mediaItem.size,
         order_position: mediaItem.order,
-        cloudinary_public_id: mediaItem.cloudinaryPublicId,
+        public_id: mediaItem.cloudinaryPublicId, // ✅ CORREGIDO: mapear a public_id
         width: mediaItem.metadata.width,
         height: mediaItem.metadata.height,
         duration: mediaItem.metadata.duration,
