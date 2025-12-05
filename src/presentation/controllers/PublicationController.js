@@ -1,3 +1,4 @@
+const rabbitMQPublisher = require('../../infrastructure/messaging/RabbitMQPublisher');
 
 class PublicationController {
   constructor(
@@ -188,6 +189,24 @@ class PublicationController {
       // Ejecutar caso de uso
       const result = await this.likePublicationUseCase.execute(id, finalUserId);
 
+      // 📤 Publicar evento a RabbitMQ
+      if (result && result.publication) {
+        const authorId = result.publication.user_id || result.publication.authorId;
+
+        // No notificar si el usuario le da like a su propia publicación
+        if (authorId && authorId !== finalUserId) {
+          rabbitMQPublisher.publishEvent(
+            'PUBLICATION_LIKED',
+            {
+              userId: finalUserId,
+              publicationId: id,
+              authorId: authorId
+            },
+            'social.publication.liked'
+          );
+        }
+      }
+
       res.status(200).json({
         success: true,
         message: 'Like agregado exitosamente',
@@ -289,6 +308,29 @@ class PublicationController {
         text: commentContent,
         parentCommentId
       });
+
+      // 📤 Publicar evento a Rabbit MQ
+      if (result && result.comment) {
+        const publicationAuthorId = result.comment.publication?.user_id ||
+          result.comment.publication?.authorId ||
+          result.publicationAuthorId;
+
+        // Solo notificar si el autor del comentario NO es el autor de la publicación
+        if (publicationAuthorId && publicationAuthorId !== authorId) {
+          rabbitMQPublisher.publishEvent(
+            'COMMENT_ADDED',
+            {
+              commentId: result.comment.id,
+              authorId: authorId,
+              publicationId: publicationId,
+              publicationAuthorId: publicationAuthorId,
+              text: commentContent.substring(0, 100), // Preview
+              parentCommentId: parentCommentId || null
+            },
+            'social.comment.added'
+          );
+        }
+      }
 
       res.status(201).json({
         success: true,

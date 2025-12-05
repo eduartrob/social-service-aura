@@ -20,6 +20,7 @@ class SocialServiceApp {
   async initialize() {
     try {
       await this.initializeDatabase();
+      await this.initializeRabbitMQ();
       this.container.initialize();
       this.configureMiddlewares();
       this.configureRoutes();
@@ -36,7 +37,7 @@ class SocialServiceApp {
       const sequelize = require('./infrastructure/config/database');
       await sequelize.authenticate();
       console.log('✅ Conexión a base de datos establecida');
-      
+
       if (process.env.NODE_ENV === 'development') {
         await sequelize.sync({ alter: false });
         console.log('✅ Modelos sincronizados');
@@ -44,6 +45,17 @@ class SocialServiceApp {
     } catch (error) {
       console.error('❌ Error al conectar con la base de datos:', error);
       throw error;
+    }
+  }
+
+  async initializeRabbitMQ() {
+    try {
+      const rabbitMQPublisher = require('./infrastructure/messaging/RabbitMQPublisher');
+      await rabbitMQPublisher.connect();
+    } catch (error) {
+      console.error('❌ Error al conectar con RabbitMQ:', error);
+      // No lanzar error para que la app pueda funcionar sin RabbitMQ
+      console.warn('⚠️ La aplicación continuará sin notificaciones push');
     }
   }
 
@@ -55,7 +67,7 @@ class SocialServiceApp {
     this.app.use(cors({
       origin: function (origin, callback) {
         if (!origin) return callback(null, true);
-        
+
         const allowedOrigins = [
           'http://localhost:3000',
           'http://localhost:5500',
@@ -64,11 +76,11 @@ class SocialServiceApp {
           'file://',
           'null'
         ];
-        
+
         if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
           return callback(null, true);
         }
-        
+
         if (allowedOrigins.indexOf(origin) !== -1) {
           callback(null, true);
         } else {
@@ -113,7 +125,7 @@ class SocialServiceApp {
     const controllers = this.container.getControllers();
     const express = require('express');
     const upload = require('./config/multer');
-    
+
     // Publications Router
     const publicationRouter = express.Router();
     publicationRouter.get('/', optionalAuth, controllers.publicationController.getPublications.bind(controllers.publicationController));
@@ -124,19 +136,19 @@ class SocialServiceApp {
     publicationRouter.get('/:id/comments', controllers.publicationController.getComments.bind(controllers.publicationController));
     publicationRouter.post('/:id/comments', authMiddleware, controllers.publicationController.addComment.bind(controllers.publicationController));
     this.app.use('/api/v1/publications', publicationRouter);
-    
+
     // Profile Router - CORREGIDO CON MULTER
     const profileRouter = express.Router();
-    
+
     // GET /api/v1/profiles/:userId - Obtener perfil por ID
-    profileRouter.get('/:userId', 
-      authMiddleware, 
+    profileRouter.get('/:userId',
+      authMiddleware,
       controllers.userProfileController.getProfileByUserId.bind(controllers.userProfileController)
     );
-    
+
     // POST /api/v1/profiles - Crear perfil con avatar
     // ✅ AGREGADO: upload.single('avatar') para manejar el archivo
-    profileRouter.post('/', 
+    profileRouter.post('/',
       authMiddleware,
       upload.single('avatar'),
       (req, res, next) => {
@@ -146,27 +158,27 @@ class SocialServiceApp {
       },
       controllers.userProfileController.createProfile.bind(controllers.userProfileController)
     );
-    
+
     // POST /api/v1/profiles/friends
-    profileRouter.post('/friends', 
-      authMiddleware, 
+    profileRouter.post('/friends',
+      authMiddleware,
       controllers.userProfileController.addFriend.bind(controllers.userProfileController)
     );
-    
+
     // POST /api/v1/profiles/blocked-users
-    profileRouter.post('/blocked-users', 
-      authMiddleware, 
+    profileRouter.post('/blocked-users',
+      authMiddleware,
       controllers.userProfileController.blockUser.bind(controllers.userProfileController)
     );
-    
+
     // POST /api/v1/profiles/json - Crear perfil sin archivo (JSON puro)
     const { validateProfileData } = require('./infrastructure/middleware/profileValidationMiddleware');
-    profileRouter.post('/json', 
-      authMiddleware, 
-      ...validateProfileData, 
+    profileRouter.post('/json',
+      authMiddleware,
+      ...validateProfileData,
       controllers.userProfileController.createProfile.bind(controllers.userProfileController)
     );
-    
+
     this.app.use('/api/v1/profiles', profileRouter);
 
     // Importar rutas adicionales

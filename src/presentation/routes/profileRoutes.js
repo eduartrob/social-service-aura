@@ -14,9 +14,21 @@ const UserProfileController = require('../controllers/UserProfileController');
 
 // Importar caso de uso que funciona
 const CreateUserProfileUseCase = require('../../application/use-cases/userProfile/CreateUserProfileUseCase');
+const DeleteUserProfileUseCase = require('../../application/use-cases/userProfile/DeleteUserProfileUseCase');
 
 
-// Instanciar controlador con dependencias mínimas
+// Instanciar repositorio
+const SequelizeUserProfileRepository = require('../../infrastructure/repositories/SequelizeUserProfileRepository');
+const userProfileRepository = new SequelizeUserProfileRepository();
+
+// Instanciar servicio de cloudinary
+const CloudinaryServiceImpl = require('../../infrastructure/services/CloudinaryServiceImpl');
+const cloudinaryService = new CloudinaryServiceImpl();
+
+// Instanciar caso de uso de eliminación
+const deleteUserProfileUseCase = new DeleteUserProfileUseCase(userProfileRepository);
+
+// Instanciar controlador con dependencias
 const userProfileController = new UserProfileController(
   new CreateUserProfileUseCase(), // createUserProfileUseCase 
   null, // updateProfileUseCase - no usado por ahora
@@ -24,7 +36,10 @@ const userProfileController = new UserProfileController(
   null, // addFriendUseCase
   null, // removeFriendUseCase
   null, // blockUserUseCase
-  null  // unblockUserUseCase
+  null,  // unblockUserUseCase
+  deleteUserProfileUseCase, // deleteUserProfileUseCase
+  userProfileRepository,
+  cloudinaryService
 );
 
 // Debug: log all middlewares and controller for POST /profiles
@@ -79,11 +94,9 @@ router.get('/profiles/:id', (req, res) => {
  * DELETE /profiles/:id
  * Eliminar perfil (para futuras implementaciones)
  */
-router.delete('/profiles/:id', (req, res) => {
-  res.status(501).json({
-    success: false,
-    message: 'Endpoint no implementado aún'
-  });
-});
+router.delete('/profiles/:id',
+  authMiddleware,
+  userProfileController.deleteProfile
+);
 
 module.exports = router;
