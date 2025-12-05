@@ -16,6 +16,7 @@ const { AddFriendUseCase, RemoveFriendUseCase } = require('../../application/use
 const { BlockUserUseCase, UnblockUserUseCase } = require('../../application/use-cases/userProfile/BlockUserUseCaseSimple');
 const { UpdateProfileUseCase, UpdateInterestsUseCase } = require('../../application/use-cases/userProfile/UpdateProfileUseCaseSimple');
 const CreateUserProfileUseCase = require('../../application/use-cases/userProfile/CreateUserProfileUseCase');
+const DeleteUserProfileUseCase = require('../../application/use-cases/userProfile');
 
 // Importar controladores (capa de presentación)
 const PublicationController = require('../../presentation/controllers/PublicationController');
@@ -49,13 +50,13 @@ class Container {
 
     // 1. Registrar repositorios (capa de infraestructura)
     this._registerRepositories();
-    
+
     // 2. Registrar servicios externos
     this._registerExternalServices();
-    
+
     // 3. Registrar casos de uso (capa de aplicación)
     this._registerUseCases();
-    
+
     // 4. Registrar controladores (capa de presentación)
     this._registerControllers();
     console.log('✅ Contenedor de dependencias inicializado');
@@ -114,7 +115,7 @@ class Container {
     const cloudinaryService = this.get('cloudinaryService');
 
     // Casos de uso de Publication
-    this._services.set('createPublicationUseCase', 
+    this._services.set('createPublicationUseCase',
       new CreatePublicationUseCase(publicationRepository, cloudinaryService)
     );
 
@@ -174,6 +175,10 @@ class Container {
     this._services.set('unblockUserUseCase',
       new UnblockUserUseCase(userProfileRepository)
     );
+
+    this._services.set('deleteUserProfileUseCase',
+      new DeleteUserProfileUseCase(userProfileRepository)
+    );
   }
 
   /**
@@ -204,9 +209,9 @@ class Container {
       this.get('removeFriendUseCase'),
       this.get('blockUserUseCase'),
       this.get('unblockUserUseCase'),
-        this.get('userProfileRepository'),
-        this.get('cloudinaryService') 
-
+      this.get('deleteUserProfileUseCase'),
+      this.get('userProfileRepository'),
+      this.get('cloudinaryService')
     );
     this._services.set('userProfileController', userProfileController);
 
