@@ -99,7 +99,7 @@ class GetPublicationsUseCase {
           {
             model: MediaItemModel,
             as: 'mediaItems',
-            attributes: ['id', 'type', 'url', 'filename', 'size', 'order_position', 'width', 'height'],
+            attributes: ['id', 'type', 'url', 'original_name', 'size', 'order_position', 'width', 'height'], // ✅ CORREGIDO: usar original_name
             required: false,
             order: [['order_position', 'ASC']]
           },
@@ -138,7 +138,7 @@ class GetPublicationsUseCase {
           id: media.id,
           type: media.type,
           url: media.url,
-          filename: media.filename,
+          filename: media.original_name, // ✅ CORREGIDO: mapear desde original_name
           size: media.size,
           order: media.order_position,
           width: media.width,
