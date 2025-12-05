@@ -14,7 +14,7 @@ class GetPublicationsUseCase {
       console.log('📖 GetPublicationsUseCase - Opciones:', options);
 
       // VERSIÓN SIMPLIFICADA - Query directo con Sequelize
-      const { PublicationModel, UserProfileModel, MediaItemModel } = require('../../../infrastructure/database/models');
+      const { PublicationModel, UserProfileModel, MediaItemModel, LikeModel } = require('../../../infrastructure/database/models');
       const { Op } = require('sequelize');
 
       const {
@@ -108,6 +108,14 @@ class GetPublicationsUseCase {
             as: 'author',
             attributes: ['id', 'display_name', 'avatar_url', 'username'],
             required: false
+          },
+          // ✅ NUEVO: Incluir likes para verificar si el usuario actual le dio like
+          {
+            model: LikeModel,
+            as: 'likes',
+            attributes: ['id', 'user_id'],
+            required: false,
+            where: currentUserId ? { user_id: currentUserId } : undefined
           }
         ],
         order: [['created_at', 'DESC']],
@@ -150,7 +158,9 @@ class GetPublicationsUseCase {
           display_name: pub.author.display_name,
           avatar_url: pub.author.avatar_url,
           username: pub.author.username
-        } : null
+        } : null,
+        // ✅ NUEVO: Indicar si el usuario actual le dio like
+        is_liked_by_current_user: pub.likes && pub.likes.length > 0
       }));
 
       console.log(`✅ Encontradas ${result.count} publicaciones (después de filtros de visibilidad)`);
