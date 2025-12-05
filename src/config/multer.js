@@ -1,60 +1,73 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../infrastructure/config/cloudinary');
 
-// Crear carpeta uploads si no existe
-const uploadDir = path.join(__dirname, '../../uploads/publications');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    console.log('📁 Directorio de uploads creado:', uploadDir);
-}
+// =============================================
+// CONFIGURACIÓN DE CLOUDINARY PARA PUBLICACIONES
+// =============================================
 
-// Configuración de almacenamiento
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        // Nombre único: timestamp + random + extensión
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        const filename = `pub-${uniqueSuffix}${ext}`;
-        console.log('📝 Generando nombre de archivo:', filename);
-        cb(null, filename);
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'social-service/publications', // Carpeta específica para publicaciones
+        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'avi', 'mov', 'webm'],
+        resource_type: 'auto', // Permite imágenes y videos
+        transformation: [
+            {
+                quality: 'auto:good',
+                fetch_format: 'auto'
+            }
+        ],
+        public_id: (req, file) => {
+            // Generar nombre único usando timestamp
+            const timestamp = Date.now();
+            const random = Math.round(Math.random() * 1E9);
+            return `pub-${timestamp}-${random}`;
+        }
     }
 });
 
-// Filtro de archivos (solo imágenes)
+// Filtro de archivos (imágenes y videos)
 const fileFilter = (req, file, cb) => {
     console.log('🔍 Validando archivo:', {
         fieldname: file.fieldname,
         originalname: file.originalname,
-        mimetype: file.mimetype,
-        encoding: file.encoding
+        mimetype: file.mimetype
     });
 
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const allowedMimes = [
+        // Imágenes
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        // Videos
+        'video/mp4',
+        'video/avi',
+        'video/mov',
+        'video/webm',
+        'video/quicktime'
+    ];
 
-    if (mimetype && extname) {
+    if (allowedMimes.includes(file.mimetype)) {
         console.log('✅ Archivo válido:', file.fieldname);
         return cb(null, true);
     } else {
         console.log('❌ Tipo de archivo no permitido:', file.mimetype);
-        cb(new Error('Solo se permiten imágenes (jpeg, jpg, png, gif, webp)'));
+        cb(new Error('Solo se permiten imágenes (jpeg, jpg, png, gif, webp) o videos (mp4, avi, mov, webm)'));
     }
 };
 
-// Configurar multer
+// Configurar multer con Cloudinary
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB máximo
+        fileSize: 100 * 1024 * 1024 // 100MB máximo
     }
 });
 
-console.log('✅ Multer configurado correctamente');
+console.log('✅ Multer configurado con Cloudinary para publicaciones');
 
 module.exports = upload;
