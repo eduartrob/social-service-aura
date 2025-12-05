@@ -121,10 +121,11 @@ class PublicationController {
         console.log(`📤 Procesando ${req.files.length} archivo(s)...`);
 
         req.files.forEach((file, index) => {
-          // Construir URL pública del archivo usando el host del request
-          const fileUrl = getPublicationFileUrl(file.filename, req);
+          // ✅ CORREGIDO: Usar la URL de Cloudinary (file.path) en lugar de URL local
+          // El middleware uploadMiddleware.js sube a Cloudinary y pone la URL en file.path
+          const fileUrl = file.path || file.url; // file.path contiene la URL de Cloudinary
           mediaUrls.push(fileUrl);
-          console.log(`✅ Archivo ${index + 1} guardado:`, fileUrl);
+          console.log(`✅ Archivo ${index + 1} subido a Cloudinary:`, fileUrl);
         });
       }
 
