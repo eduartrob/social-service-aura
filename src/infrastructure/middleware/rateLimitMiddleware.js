@@ -2,11 +2,11 @@ const rateLimit = require('express-rate-limit');
 
 // Rate limiting general para todas las rutas
 const generalLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 15 minutos
-  max: 100, // Máximo 100 requests por ventana de tiempo
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 10000, // Máximo 10000 requests por hora
   message: {
     success: false,
-    message: 'Demasiadas solicitudes, intenta de nuevo en 15 minutos'
+    message: 'Demasiadas solicitudes, intenta de nuevo más tarde'
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -19,7 +19,7 @@ const generalLimiter = rateLimit({
 // Rate limiting estricto para crear publicaciones
 const createPublicationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 20, // Máximo 20 publicaciones por hora
+  max: 1000, // Máximo 1000 publicaciones por hora
   message: {
     success: false,
     message: 'Has alcanzado el límite de publicaciones por hora. Intenta de nuevo más tarde.'
@@ -30,11 +30,11 @@ const createPublicationLimiter = rateLimit({
 
 // Rate limiting para likes (más permisivo)
 const likeLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutos
-  max: 50, // Máximo 50 likes en 5 minutos
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5000, // Máximo 5000 likes por hora
   message: {
     success: false,
-    message: 'Demasiados likes en poco tiempo. Espera 5 minutos.'
+    message: 'Demasiados likes en poco tiempo. Espera un momento.'
   },
   standardHeaders: true,
   legacyHeaders: false
@@ -42,11 +42,11 @@ const likeLimiter = rateLimit({
 
 // Rate limiting para comentarios
 const commentLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutos
-  max: 30, // Máximo 30 comentarios en 10 minutos
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 3000, // Máximo 3000 comentarios por hora
   message: {
     success: false,
-    message: 'Demasiados comentarios en poco tiempo. Espera 10 minutos.'
+    message: 'Demasiados comentarios en poco tiempo. Espera un momento.'
   },
   standardHeaders: true,
   legacyHeaders: false
@@ -55,10 +55,10 @@ const commentLimiter = rateLimit({
 // Rate limiting para acciones sociales (agregar amigos, bloquear)
 const socialActionLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 10, // Máximo 10 acciones sociales por hora
+  max: 1000, // Máximo 1000 acciones sociales por hora
   message: {
     success: false,
-    message: 'Demasiadas acciones sociales en poco tiempo. Espera una hora.'
+    message: 'Demasiadas acciones sociales en poco tiempo. Espera un momento.'
   },
   standardHeaders: true,
   legacyHeaders: false
@@ -66,11 +66,11 @@ const socialActionLimiter = rateLimit({
 
 // Rate limiting para búsquedas
 const searchLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minuto
-  max: 20, // Máximo 20 búsquedas por minuto
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 2000, // Máximo 2000 búsquedas por hora
   message: {
     success: false,
-    message: 'Demasiadas búsquedas. Espera un minuto.'
+    message: 'Demasiadas búsquedas. Espera un momento.'
   },
   standardHeaders: true,
   legacyHeaders: false
