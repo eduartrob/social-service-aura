@@ -14,9 +14,9 @@ class GetPublicationsUseCase {
       console.log('📖 GetPublicationsUseCase - Opciones:', options);
 
       // VERSIÓN SIMPLIFICADA - Query directo con Sequelize
-      const { PublicationModel, UserProfileModel } = require('../../../infrastructure/database/models');
+      const { PublicationModel, UserProfileModel, MediaItemModel } = require('../../../infrastructure/database/models');
       const { Op } = require('sequelize');
-      
+
       const {
         page = 1,
         limit = 10,
@@ -40,7 +40,7 @@ class GetPublicationsUseCase {
       // ✅ LÓGICA CORRECTA DE VISIBILIDAD
       if (currentUserId) {
         console.log('🔒 Aplicando filtros de visibilidad para usuario:', currentUserId);
-        
+
         // Obtener amigos del usuario actual
         let friendIds = [];
         try {
@@ -58,11 +58,11 @@ class GetPublicationsUseCase {
         const visibilityConditions = [
           // 1. Publicaciones públicas - todos pueden ver
           { visibility: 'public' },
-          
+
           // 2. Publicaciones privadas - solo el autor puede ver
-          { 
+          {
             visibility: 'private',
-            user_id: currentUserId 
+            user_id: currentUserId
           }
         ];
 
@@ -92,9 +92,24 @@ class GetPublicationsUseCase {
         console.log('🌍 Usuario no autenticado - solo publicaciones públicas');
       }
 
-      // Ejecutar consulta
+      // Ejecutar consulta con includes para media items y autor
       const result = await PublicationModel.findAndCountAll({
         where,
+        include: [
+          {
+            model: MediaItemModel,
+            as: 'mediaItems',
+            attributes: ['id', 'type', 'url', 'filename', 'size', 'order_position', 'width', 'height'],
+            required: false,
+            order: [['order_position', 'ASC']]
+          },
+          {
+            model: UserProfileModel,
+            as: 'author',
+            attributes: ['id', 'display_name', 'avatar_url', 'username'],
+            required: false
+          }
+        ],
         order: [['created_at', 'DESC']],
         limit: parseInt(limit),
         offset: parseInt(offset),
@@ -102,7 +117,8 @@ class GetPublicationsUseCase {
           'id', 'user_id', 'content', 'type', 'visibility',
           'likes_count', 'comments_count', 'shares_count',
           'metadata', 'created_at', 'updated_at'
-        ]
+        ],
+        distinct: true
       });
 
       const publications = result.rows.map(pub => ({
@@ -116,7 +132,25 @@ class GetPublicationsUseCase {
         shares_count: pub.shares_count,
         metadata: pub.metadata,
         created_at: pub.created_at,
-        updated_at: pub.updated_at
+        updated_at: pub.updated_at,
+        // ✅ Incluir media items (imágenes/videos)
+        mediaItems: pub.mediaItems ? pub.mediaItems.map(media => ({
+          id: media.id,
+          type: media.type,
+          url: media.url,
+          filename: media.filename,
+          size: media.size,
+          order: media.order_position,
+          width: media.width,
+          height: media.height
+        })) : [],
+        // ✅ Incluir información del autor
+        author: pub.author ? {
+          id: pub.author.id,
+          display_name: pub.author.display_name,
+          avatar_url: pub.author.avatar_url,
+          username: pub.author.username
+        } : null
       }));
 
       console.log(`✅ Encontradas ${result.count} publicaciones (después de filtros de visibilidad)`);

@@ -1,4 +1,5 @@
 const rabbitMQPublisher = require('../../infrastructure/messaging/RabbitMQPublisher');
+const { getPublicationFileUrl } = require('../../shared/utils/urlHelper');
 
 class PublicationController {
   constructor(
@@ -108,7 +109,8 @@ class PublicationController {
     try {
       console.log('📝 CreatePublication - req.body:', req.body);
       console.log('� CreatePublication - req.files:', req.files);
-      console.log('�👤 CreatePublication - req.user:', req.user);
+      console.log(' CreatePublication - req.files:', req.files);
+      console.log('👤 CreatePublication - req.user:', req.user);
 
       // Extraer datos del body
       const { content, type, visibility, location, tags } = req.body;
@@ -119,8 +121,8 @@ class PublicationController {
         console.log(`📤 Procesando ${req.files.length} archivo(s)...`);
 
         req.files.forEach((file, index) => {
-          // Construir URL pública del archivo
-          const fileUrl = `http://3.213.101.39:3002/uploads/publications/${file.filename}`;
+          // Construir URL pública del archivo usando el host del request
+          const fileUrl = getPublicationFileUrl(file.filename, req);
           mediaUrls.push(fileUrl);
           console.log(`✅ Archivo ${index + 1} guardado:`, fileUrl);
         });
@@ -190,11 +192,13 @@ class PublicationController {
       const result = await this.likePublicationUseCase.execute(id, finalUserId);
 
       // 📤 Publicar evento a RabbitMQ
-      if (result && result.publication) {
-        const authorId = result.publication.user_id || result.publication.authorId;
+      if (result && result.publication && result.publication.authorId) {
+        const authorId = result.publication.authorId;
 
         // No notificar si el usuario le da like a su propia publicación
-        if (authorId && authorId !== finalUserId) {
+        if (authorId !== finalUserId) {
+          console.log(`📤 Publicando evento PUBLICATION_LIKED - User: ${finalUserId}, Author: ${authorId}, Publication: ${id}`);
+
           rabbitMQPublisher.publishEvent(
             'PUBLICATION_LIKED',
             {
@@ -204,7 +208,11 @@ class PublicationController {
             },
             'social.publication.liked'
           );
+        } else {
+          console.log(`⏭️ No se publica evento - Usuario dio like a su propia publicación`);
         }
+      } else {
+        console.warn(`⚠️ No se pudo publicar evento PUBLICATION_LIKED - Falta información del autor`);
       }
 
       res.status(200).json({

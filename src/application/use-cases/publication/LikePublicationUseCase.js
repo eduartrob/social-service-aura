@@ -12,14 +12,14 @@ class LikePublicationUseCase {
     try {
       // 1. Obtener la publicación (agregado completo)
       const publication = await this.publicationRepository.findById(publicationId);
-      
+
       if (!publication) {
         throw new Error('Publicación no encontrada');
       }
 
       // 2. La lógica de negocio está en el agregado
       const likeEvent = publication.like(userId);
-      
+
       // 3. Persistir cambios
       await this.publicationRepository.save(publication);
 
@@ -29,6 +29,7 @@ class LikePublicationUseCase {
         event: likeEvent,
         publication: {
           id: publication.id.value,
+          authorId: publication.authorId, // ✅ Incluir authorId para notificaciones
           likesCount: publication.likesCount,
           hasLikedByUser: publication.hasLikedBy(userId)
         }
@@ -52,14 +53,14 @@ class UnlikePublicationUseCase {
     try {
       // 1. Obtener la publicación
       const publication = await this.publicationRepository.findById(publicationId);
-      
+
       if (!publication) {
         throw new Error('Publicación no encontrada');
       }
 
       // 2. La lógica está en el agregado
       const unlikeEvent = publication.unlike(userId);
-      
+
       // 3. Persistir cambios
       await this.publicationRepository.save(publication);
 
