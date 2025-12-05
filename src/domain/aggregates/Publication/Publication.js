@@ -89,7 +89,7 @@ class Publication {
    */
   deleteComment(commentId, userId) {
     const comment = this._comments.get(commentId);
-    
+
     if (!comment) {
       throw new Error('Comentario no encontrado');
     }
@@ -117,11 +117,6 @@ class Publication {
   like(userId) {
     if (!userId || typeof userId !== 'string') {
       throw new Error('UserId es requerido para dar like');
-    }
-
-    // No se puede dar like a propia publicación
-    if (userId === this._authorId) {
-      throw new Error('No puedes dar like a tu propia publicación');
     }
 
     // Verificar si ya dio like
@@ -165,7 +160,7 @@ class Publication {
   addMediaItem(type, url, filename, size, order = null) {
     const mediaItemId = uuidv4();
     const itemOrder = order !== null ? order : this._mediaItems.size;
-    
+
     const mediaItem = new MediaItem(
       mediaItemId,
       this._id.value,
@@ -240,7 +235,7 @@ class Publication {
   _updateType() {
     const hasText = !this._text.isEmpty();
     const hasMedia = this._mediaItems.size > 0;
-    
+
     if (hasText && hasMedia) {
       this._type = 'text_image';
     } else if (hasMedia) {
@@ -258,7 +253,7 @@ class Publication {
   _reorderMediaItems() {
     const items = Array.from(this._mediaItems.values())
       .sort((a, b) => a.order - b.order);
-    
+
     items.forEach((item, index) => {
       item.updateOrder(index);
     });
