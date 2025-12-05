@@ -42,6 +42,7 @@ class SequelizePublicationRepository extends IPublicationRepository {
           {
             model: MediaItemModel,
             as: 'mediaItems',
+            attributes: ['id', 'type', 'url', 'original_name', 'size', 'order_position', 'width', 'height', 'public_id'],
             order: [['order_position', 'ASC']]
           },
           {
@@ -404,6 +405,7 @@ class SequelizePublicationRepository extends IPublicationRepository {
       {
         model: MediaItemModel,
         as: 'mediaItems',
+        attributes: ['id', 'type', 'url', 'original_name', 'size', 'order_position', 'width', 'height', 'public_id'], // ✅ Especificar atributos explícitamente
         order: [['order_position', 'ASC']]
       },
       {
