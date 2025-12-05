@@ -18,46 +18,71 @@ class CreatePublicationUseCase {
       console.log('🚀 CreatePublicationUseCase - Datos recibidos:', data);
 
       const publicationId = uuidv4();
-      
+
       // Construir metadata con URLs de medios
       const metadata = {
-          mediaUrls: data.mediaUrls || []
+        mediaUrls: data.mediaUrls || []
       };
 
       console.log('📦 Metadata construido:', metadata);
 
       const dataToInsert = {
-          id: publicationId,
-          user_id: data.authorId,
-          content: data.content || data.text || '',
-          type: data.type || 'text',
-          visibility: data.visibility || 'public',
-          location: data.location || null,
-          tags: data.tags && data.tags.length > 0 
-              ? JSON.stringify(data.tags) 
-              : null,
-          metadata: JSON.stringify(metadata),
-          likes_count: 0,
-          comments_count: 0,
-          shares_count: 0,
-          is_active: true
+        id: publicationId,
+        user_id: data.authorId,
+        content: data.content || data.text || '',
+        type: data.type || 'text',
+        visibility: data.visibility || 'public',
+        location: data.location || null,
+        tags: data.tags && data.tags.length > 0
+          ? JSON.stringify(data.tags)
+          : null,
+        metadata: JSON.stringify(metadata),
+        likes_count: 0,
+        comments_count: 0,
+        shares_count: 0,
+        is_active: true
       };
 
       console.log('💾 Intentando insertar en BD:', dataToInsert);
 
       const publication = await this.publicationRepository.create(dataToInsert);
-      
+
       console.log('✅ Publicación creada exitosamente:', publication);
-      
+
+      // ✅ NUEVO: Insertar registros en la tabla media si hay URLs
+      if (data.mediaUrls && data.mediaUrls.length > 0) {
+        const { MediaItemModel } = require('../../../infrastructure/database/models');
+
+        for (let i = 0; i < data.mediaUrls.length; i++) {
+          const url = data.mediaUrls[i];
+          const filename = data.files && data.files[i] ? data.files[i].filename : url.split('/').pop();
+
+          await MediaItemModel.create({
+            id: uuidv4(),
+            post_id: publicationId,
+            type: 'image', // Por ahora asumimos image, puedes mejorar esto
+            url: url,
+            original_name: filename,
+            size: data.files && data.files[i] ? data.files[i].size : null,
+            order_position: i + 1,
+            width: null,
+            height: null,
+            public_id: null
+          });
+
+          console.log(`📸 Media item ${i + 1} creado:`, url);
+        }
+      }
+
       // Asegurarse de que metadata sea un objeto al retornar
       if (typeof publication.metadata === 'string') {
-          try {
-              publication.metadata = JSON.parse(publication.metadata);
-          } catch (e) {
-              console.log('⚠️ Error parseando metadata en respuesta');
-          }
+        try {
+          publication.metadata = JSON.parse(publication.metadata);
+        } catch (e) {
+          console.log('⚠️ Error parseando metadata en respuesta');
+        }
       }
-      
+
       return publication;
 
     } catch (error) {
