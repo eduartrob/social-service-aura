@@ -37,7 +37,7 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'likes',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: false,
+    updatedAt: 'updated_at',
     indexes: [
       {
         fields: ['user_id']
