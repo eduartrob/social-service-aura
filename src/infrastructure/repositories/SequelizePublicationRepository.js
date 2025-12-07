@@ -456,13 +456,16 @@ class SequelizePublicationRepository extends IPublicationRepository {
     });
 
     // Crear likes del agregado
+    const now = new Date();
     const likePromises = Array.from(publication.likes).map(userId => {
       return LikeModel.create({
         id: uuidv4(),
         user_id: userId,
         likeable_id: publication.id.value,
         likeable_type: 'post',
-        type: 'like'
+        type: 'like',
+        created_at: now,
+        updated_at: now  // ✅ FIX: La BD requiere este campo
       }, { transaction });
     });
 
