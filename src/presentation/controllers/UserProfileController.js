@@ -91,21 +91,12 @@ class UserProfileController {
           avatarUrl = uploadResult.secureUrl;
           console.log('✅ Avatar subido a Cloudinary:', avatarUrl);
 
-          // ✅ CORREGIDO - fs ya está importado al principio
-          fs.unlinkSync(req.file.path);
-          console.log('🗑️ Archivo temporal eliminado');
+          // NOTA: Con multer-storage-cloudinary, el archivo se sube directamente a Cloudinary
+          // No hay archivo temporal local que eliminar - req.file.path es la URL de Cloudinary
 
         } catch (uploadError) {
           console.error('❌ Error subiendo avatar a Cloudinary:', uploadError);
-          // Si falla la subida, limpiar el archivo temporal
-          try {
-            // ✅ CORREGIDO - Ya no necesitas require aquí
-            if (req.file && req.file.path) {
-              fs.unlinkSync(req.file.path);
-            }
-          } catch (cleanupError) {
-            console.error('❌ Error limpiando archivo temporal:', cleanupError);
-          }
+          // Con multer-storage-cloudinary, no hay archivos temporales locales que limpiar
 
           return res.status(500).json({
             success: false,
