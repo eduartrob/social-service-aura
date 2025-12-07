@@ -51,7 +51,7 @@ class GetCommentsUseCase {
           avatar_url: comment.authorAvatar
         },
         content: comment.text, // Mapeando comment.text a content
-        parentCommentId: comment.parentId,
+        parentCommentId: comment.parentCommentId,
         level: comment.level,
         likesCount: comment.likesCount,
         repliesCount: comment.repliesCount,
