@@ -12,6 +12,9 @@ const { AddCommentUseCase, DeleteCommentUseCase } = require('../../application/u
 const GetCommentsUseCase = require('../../application/use-cases/publication/GetCommentsUseCase');
 const { LikeCommentUseCase, UnlikeCommentUseCase } = require('../../application/use-cases/publication/LikeCommentUseCase');
 const CommentLikeRepository = require('../../infrastructure/repositories/CommentLikeRepository');
+const GetUserPublicationsUseCase = require('../../application/use-cases/publication/GetUserPublicationsUseCase');
+const UpdatePublicationUseCase = require('../../application/use-cases/publication/UpdatePublicationUseCase');
+const DeletePublicationUseCase = require('../../application/use-cases/publication/DeletePublicationUseCase');
 
 // Casos de uso para UserProfile (versiones simplificadas)
 const { AddFriendUseCase, RemoveFriendUseCase } = require('../../application/use-cases/userProfile/AddFriendUseCaseSimple');
@@ -161,6 +164,19 @@ class Container {
       new UnlikeCommentUseCase(publicationRepository, commentLikeRepository)
     );
 
+    // Nuevos casos de uso para gestión de publicaciones del usuario
+    this._services.set('getUserPublicationsUseCase',
+      new GetUserPublicationsUseCase(publicationRepository)
+    );
+
+    this._services.set('updatePublicationUseCase',
+      new UpdatePublicationUseCase(publicationRepository)
+    );
+
+    this._services.set('deletePublicationUseCase',
+      new DeletePublicationUseCase(publicationRepository)
+    );
+
     // Casos de uso de UserProfile (nuevas funcionalidades)
     this._services.set('createUserProfileUseCase',
       new CreateUserProfileUseCase(userProfileRepository)
@@ -212,7 +228,10 @@ class Container {
       this.get('deleteCommentUseCase'),
       this.get('getCommentsUseCase'),
       this.get('likeCommentUseCase'),
-      this.get('unlikeCommentUseCase')
+      this.get('unlikeCommentUseCase'),
+      this.get('getUserPublicationsUseCase'),
+      this.get('updatePublicationUseCase'),
+      this.get('deletePublicationUseCase')
     );
     this._services.set('publicationController', publicationController);
 

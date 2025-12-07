@@ -129,12 +129,19 @@ class SocialServiceApp {
     // Publications Router
     const publicationRouter = express.Router();
     publicationRouter.get('/', optionalAuth, controllers.publicationController.getPublications.bind(controllers.publicationController));
+    // Ruta para obtener publicaciones de un usuario específico (debe ir antes de /:id)
+    publicationRouter.get('/user/:userId', optionalAuth, controllers.publicationController.getPublicationsByUser.bind(controllers.publicationController));
     publicationRouter.get('/:id', optionalAuth, controllers.publicationController.getPublicationById.bind(controllers.publicationController));
     publicationRouter.post('/', authMiddleware, upload.any(), controllers.publicationController.createPublication.bind(controllers.publicationController));
+    // Rutas para actualizar y eliminar publicaciones
+    publicationRouter.put('/:id', authMiddleware, controllers.publicationController.updatePublication.bind(controllers.publicationController));
+    publicationRouter.delete('/:id', authMiddleware, controllers.publicationController.deletePublication.bind(controllers.publicationController));
     publicationRouter.post('/:id/like', authMiddleware, controllers.publicationController.likePublication.bind(controllers.publicationController));
     publicationRouter.delete('/:id/like', authMiddleware, controllers.publicationController.unlikePublication.bind(controllers.publicationController));
     publicationRouter.get('/:id/comments', controllers.publicationController.getComments.bind(controllers.publicationController));
     publicationRouter.post('/:id/comments', authMiddleware, controllers.publicationController.addComment.bind(controllers.publicationController));
+    // Ruta para eliminar comentarios
+    publicationRouter.delete('/:id/comments/:commentId', authMiddleware, controllers.publicationController.deleteComment.bind(controllers.publicationController));
     // Rutas para likes de comentarios
     publicationRouter.post('/:id/comments/:commentId/like', authMiddleware, controllers.publicationController.likeComment.bind(controllers.publicationController));
     publicationRouter.delete('/:id/comments/:commentId/like', authMiddleware, controllers.publicationController.unlikeComment.bind(controllers.publicationController));

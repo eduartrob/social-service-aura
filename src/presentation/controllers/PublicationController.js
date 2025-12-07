@@ -12,7 +12,10 @@ class PublicationController {
     deleteCommentUseCase,
     getCommentsUseCase,
     likeCommentUseCase = null,
-    unlikeCommentUseCase = null
+    unlikeCommentUseCase = null,
+    getUserPublicationsUseCase = null,
+    updatePublicationUseCase = null,
+    deletePublicationUseCase = null
   ) {
     this.createPublicationUseCase = createPublicationUseCase;
     this.getPublicationsUseCase = getPublicationsUseCase;
@@ -24,6 +27,9 @@ class PublicationController {
     this.getCommentsUseCase = getCommentsUseCase;
     this.likeCommentUseCase = likeCommentUseCase;
     this.unlikeCommentUseCase = unlikeCommentUseCase;
+    this.getUserPublicationsUseCase = getUserPublicationsUseCase;
+    this.updatePublicationUseCase = updatePublicationUseCase;
+    this.deletePublicationUseCase = deletePublicationUseCase;
 
     // Bind methods para mantener contexto
     this.getPublications = this.getPublications.bind(this);
@@ -36,6 +42,9 @@ class PublicationController {
     this.getComments = this.getComments.bind(this);
     this.likeComment = this.likeComment.bind(this);
     this.unlikeComment = this.unlikeComment.bind(this);
+    this.getPublicationsByUser = this.getPublicationsByUser.bind(this);
+    this.updatePublication = this.updatePublication.bind(this);
+    this.deletePublication = this.deletePublication.bind(this);
   }
 
   /**
@@ -452,6 +461,89 @@ class PublicationController {
         data: result
       });
 
+    } catch (error) {
+      this._handleError(res, error);
+    }
+  }
+
+  /**
+   * Obtener publicaciones de un usuario
+   */
+  async getPublicationsByUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+
+      if (!this.getUserPublicationsUseCase) {
+        return res.status(501).json({
+          success: false,
+          message: 'Funcionalidad no disponible'
+        });
+      }
+
+      const result = await this.getUserPublicationsUseCase.execute(userId, { page, limit });
+
+      res.status(200).json({
+        success: true,
+        message: 'Publicaciones obtenidas exitosamente',
+        data: result
+      });
+    } catch (error) {
+      this._handleError(res, error);
+    }
+  }
+
+  /**
+   * Actualizar publicación
+   */
+  async updatePublication(req, res) {
+    try {
+      const { id } = req.params;
+      const { content } = req.body;
+      const userId = req.user?.id || req.body.userId;
+
+      if (!this.updatePublicationUseCase) {
+        return res.status(501).json({
+          success: false,
+          message: 'Funcionalidad no disponible'
+        });
+      }
+
+      const result = await this.updatePublicationUseCase.execute(id, userId, content);
+
+      res.status(200).json({
+        success: true,
+        message: 'Publicación actualizada exitosamente',
+        data: result
+      });
+    } catch (error) {
+      this._handleError(res, error);
+    }
+  }
+
+  /**
+   * Eliminar publicación
+   */
+  async deletePublication(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || req.body.userId;
+
+      if (!this.deletePublicationUseCase) {
+        return res.status(501).json({
+          success: false,
+          message: 'Funcionalidad no disponible'
+        });
+      }
+
+      const result = await this.deletePublicationUseCase.execute(id, userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Publicación eliminada exitosamente',
+        data: result
+      });
     } catch (error) {
       this._handleError(res, error);
     }
