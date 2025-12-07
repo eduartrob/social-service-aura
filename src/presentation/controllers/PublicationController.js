@@ -10,7 +10,9 @@ class PublicationController {
     unlikePublicationUseCase,
     addCommentUseCase,
     deleteCommentUseCase,
-    getCommentsUseCase
+    getCommentsUseCase,
+    likeCommentUseCase = null,
+    unlikeCommentUseCase = null
   ) {
     this.createPublicationUseCase = createPublicationUseCase;
     this.getPublicationsUseCase = getPublicationsUseCase;
@@ -20,6 +22,8 @@ class PublicationController {
     this.addCommentUseCase = addCommentUseCase;
     this.deleteCommentUseCase = deleteCommentUseCase;
     this.getCommentsUseCase = getCommentsUseCase;
+    this.likeCommentUseCase = likeCommentUseCase;
+    this.unlikeCommentUseCase = unlikeCommentUseCase;
 
     // Bind methods para mantener contexto
     this.getPublications = this.getPublications.bind(this);
@@ -30,6 +34,8 @@ class PublicationController {
     this.addComment = this.addComment.bind(this);
     this.deleteComment = this.deleteComment.bind(this);
     this.getComments = this.getComments.bind(this);
+    this.likeComment = this.likeComment.bind(this);
+    this.unlikeComment = this.unlikeComment.bind(this);
   }
 
   /**
@@ -263,12 +269,14 @@ class PublicationController {
     try {
       const { id: publicationId } = req.params;
       const { hierarchical = false } = req.query;
+      const currentUserId = req.user?.id;
 
-      console.log('📝 GetComments - Publicación:', publicationId);
+      console.log('📝 GetComments - Publicación:', publicationId, 'User:', currentUserId);
 
       // Preparar opciones
       const options = {
-        hierarchical: hierarchical === 'true'
+        hierarchical: hierarchical === 'true',
+        currentUserId // Para calcular is_liked_by_current_user
       };
 
       // Ejecutar caso de uso
@@ -373,6 +381,74 @@ class PublicationController {
       res.status(200).json({
         success: true,
         message: 'Comentario eliminado exitosamente',
+        data: result
+      });
+
+    } catch (error) {
+      this._handleError(res, error);
+    }
+  }
+
+  /**
+   * Dar like a un comentario
+   */
+  async likeComment(req, res) {
+    try {
+      const { id: publicationId, commentId } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+      }
+
+      console.log(`💖 LikeComment - Publication: ${publicationId}, Comment: ${commentId}, User: ${userId}`);
+
+      const result = await this.likeCommentUseCase.execute({
+        publicationId,
+        commentId,
+        userId
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Like agregado al comentario',
+        data: result
+      });
+
+    } catch (error) {
+      this._handleError(res, error);
+    }
+  }
+
+  /**
+   * Quitar like de un comentario
+   */
+  async unlikeComment(req, res) {
+    try {
+      const { id: publicationId, commentId } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+      }
+
+      console.log(`💔 UnlikeComment - Publication: ${publicationId}, Comment: ${commentId}, User: ${userId}`);
+
+      const result = await this.unlikeCommentUseCase.execute({
+        publicationId,
+        commentId,
+        userId
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Like removido del comentario',
         data: result
       });
 

@@ -291,6 +291,13 @@ class Publication {
   }
 
   /**
+   * Obtener un comentario por ID
+   */
+  getCommentById(commentId) {
+    return this._comments.get(commentId) || null;
+  }
+
+  /**
    * Serialización
    */
   toJSON() {

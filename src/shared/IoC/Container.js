@@ -10,6 +10,8 @@ const GetPublicationByIdUseCase = require('../../application/use-cases/publicati
 const { LikePublicationUseCase, UnlikePublicationUseCase } = require('../../application/use-cases/publication/LikePublicationUseCase');
 const { AddCommentUseCase, DeleteCommentUseCase } = require('../../application/use-cases/publication/AddCommentUseCase');
 const GetCommentsUseCase = require('../../application/use-cases/publication/GetCommentsUseCase');
+const { LikeCommentUseCase, UnlikeCommentUseCase } = require('../../application/use-cases/publication/LikeCommentUseCase');
+const CommentLikeRepository = require('../../infrastructure/repositories/CommentLikeRepository');
 
 // Casos de uso para UserProfile (versiones simplificadas)
 const { AddFriendUseCase, RemoveFriendUseCase } = require('../../application/use-cases/userProfile/AddFriendUseCaseSimple');
@@ -143,8 +145,20 @@ class Container {
       new DeleteCommentUseCase(publicationRepository)
     );
 
+    // Casos de uso de likes para comentarios
+    const commentLikeRepository = new CommentLikeRepository();
+    this._services.set('commentLikeRepository', commentLikeRepository);
+
     this._services.set('getCommentsUseCase',
-      new GetCommentsUseCase(publicationRepository)
+      new GetCommentsUseCase(publicationRepository, commentLikeRepository)
+    );
+
+    this._services.set('likeCommentUseCase',
+      new LikeCommentUseCase(publicationRepository, commentLikeRepository)
+    );
+
+    this._services.set('unlikeCommentUseCase',
+      new UnlikeCommentUseCase(publicationRepository, commentLikeRepository)
     );
 
     // Casos de uso de UserProfile (nuevas funcionalidades)
@@ -196,7 +210,9 @@ class Container {
       this.get('unlikePublicationUseCase'),
       this.get('addCommentUseCase'),
       this.get('deleteCommentUseCase'),
-      this.get('getCommentsUseCase')
+      this.get('getCommentsUseCase'),
+      this.get('likeCommentUseCase'),
+      this.get('unlikeCommentUseCase')
     );
     this._services.set('publicationController', publicationController);
 

@@ -135,6 +135,9 @@ class SocialServiceApp {
     publicationRouter.delete('/:id/like', authMiddleware, controllers.publicationController.unlikePublication.bind(controllers.publicationController));
     publicationRouter.get('/:id/comments', controllers.publicationController.getComments.bind(controllers.publicationController));
     publicationRouter.post('/:id/comments', authMiddleware, controllers.publicationController.addComment.bind(controllers.publicationController));
+    // Rutas para likes de comentarios
+    publicationRouter.post('/:id/comments/:commentId/like', authMiddleware, controllers.publicationController.likeComment.bind(controllers.publicationController));
+    publicationRouter.delete('/:id/comments/:commentId/like', authMiddleware, controllers.publicationController.unlikeComment.bind(controllers.publicationController));
     this.app.use('/api/v1/publications', publicationRouter);
 
     // Profile Router - CORREGIDO CON MULTER

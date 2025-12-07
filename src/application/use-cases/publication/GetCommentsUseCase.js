@@ -1,8 +1,9 @@
 
 
 class GetCommentsUseCase {
-  constructor(publicationRepository) {
+  constructor(publicationRepository, commentLikeRepository = null) {
     this.publicationRepository = publicationRepository;
+    this.commentLikeRepository = commentLikeRepository;
   }
 
   /**
@@ -11,6 +12,8 @@ class GetCommentsUseCase {
   async execute(publicationId, options = {}) {
     try {
       console.log(`📝 GetCommentsUseCase - Publicación: ${publicationId}`);
+
+      const { currentUserId, hierarchical } = options;
 
       // 1. Validaciones de entrada
       if (!publicationId) {
@@ -27,7 +30,16 @@ class GetCommentsUseCase {
       // 3. Extraer comentarios del agregado
       const comments = publication.comments || [];
 
-      // 4. Formatear comentarios para respuesta
+      // 4. Obtener likes del usuario actual para los comentarios
+      let userLikesMap = {};
+      if (currentUserId && this.commentLikeRepository) {
+        const commentIds = comments.map(c => c.id);
+        if (commentIds.length > 0) {
+          userLikesMap = await this.commentLikeRepository.checkUserLikes(commentIds, currentUserId);
+        }
+      }
+
+      // 5. Formatear comentarios para respuesta
       const formattedComments = comments.map(comment => ({
         id: comment.id,
         authorId: comment.authorId,
@@ -47,12 +59,13 @@ class GetCommentsUseCase {
         isActive: comment.isActive,
         editedAt: comment.editedAt,
         createdAt: comment.createdAt,
-        updatedAt: comment.updatedAt
+        updatedAt: comment.updatedAt,
+        is_liked_by_current_user: !!userLikesMap[comment.id] // ✅ NUEVO
       }));
 
-      // 5. Organizar en estructura jerárquica si se requiere
+      // 6. Organizar en estructura jerárquica si se requiere
       let organizedComments = formattedComments;
-      if (options.hierarchical) {
+      if (hierarchical) {
         organizedComments = this._organizeCommentsHierarchically(formattedComments);
       }
 
