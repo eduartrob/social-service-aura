@@ -21,10 +21,12 @@ done
 
 echo "✅ PostgreSQL is ready!"
 
-# Run migrations if in production (optional)
-if [ "$RUN_MIGRATIONS" = "true" ]; then
-  echo "📦 Running database migrations..."
-  npm run migrate:up || echo "⚠️  Migrations may have already been applied"
+# Run migrations automatically on startup
+echo "📦 Running database migrations..."
+if npm run migrate:up; then
+  echo "✅ Database migrations completed successfully"
+else
+  echo "⚠️  Migrations may have already been applied or encountered an error"
 fi
 
 echo "─────────────────────────────────────────────"

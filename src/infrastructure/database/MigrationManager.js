@@ -117,15 +117,15 @@ class MigrationManager {
       if (direction === 'up') {
         // Registrar migración como ejecutada
         await this.sequelize.query(
-          'INSERT INTO "SequelizeMeta" (name) VALUES (?)',
-          { replacements: [migrationFile] }
+          'INSERT INTO "SequelizeMeta" (name) VALUES ($1)',
+          { bind: [migrationFile] }
         );
         console.log(chalk.green(`✅ Migración ${migrationFile} ejecutada exitosamente`));
       } else {
         // Remover migración del registro
         await this.sequelize.query(
-          'DELETE FROM "SequelizeMeta" WHERE name = ?',
-          { replacements: [migrationFile] }
+          'DELETE FROM "SequelizeMeta" WHERE name = $1',
+          { bind: [migrationFile] }
         );
         console.log(chalk.yellow(`↩️  Migración ${migrationFile} revertida exitosamente`));
       }
