@@ -17,12 +17,17 @@ class GetUserPublicationsUseCase {
 
             const { page = 1, limit = 10 } = options;
 
-            const publications = await this.publicationRepository.findByAuthor(userId, {
+            // findByAuthor returns { publications, total }
+            const result = await this.publicationRepository.findByAuthor(userId, {
                 page,
                 limit
             });
 
-            console.log(`✅ Encontradas ${publications.length} publicaciones del usuario`);
+            // Extract publications array from result
+            const publications = result.publications || [];
+            const total = result.total || 0;
+
+            console.log(`✅ Encontradas ${publications.length} publicaciones del usuario (total: ${total})`);
 
             return {
                 success: true,
@@ -32,7 +37,7 @@ class GetUserPublicationsUseCase {
                     authorId: pub.authorId,
                     content: pub.text.text,
                     type: pub.type,
-                    mediaItems: pub.mediaItems.map(m => ({
+                    mediaItems: (pub.mediaItems || []).map(m => ({
                         id: m.id,
                         type: m.type,
                         url: m.url,
@@ -47,6 +52,7 @@ class GetUserPublicationsUseCase {
                 pagination: {
                     page,
                     limit,
+                    total,
                     hasMore: publications.length === limit
                 }
             };
