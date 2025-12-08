@@ -174,7 +174,7 @@ class Container {
     );
 
     this._services.set('deletePublicationUseCase',
-      new DeletePublicationUseCase(publicationRepository)
+      new DeletePublicationUseCase(publicationRepository, cloudinaryService)
     );
 
     // Casos de uso de UserProfile (nuevas funcionalidades)
