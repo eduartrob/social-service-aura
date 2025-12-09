@@ -1,6 +1,7 @@
 const { FriendshipModel, UserProfileModel } = require('../../infrastructure/database/models');
 const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
+const rabbitMQPublisher = require('../../infrastructure/messaging/RabbitMQPublisher');
 
 class FriendshipController {
   constructor() {
@@ -37,10 +38,10 @@ class FriendshipController {
         });
       }
 
-      const addresseeUser = await UserProfileModel.findOne({ 
-        where: { user_id: friend_id } 
+      const addresseeUser = await UserProfileModel.findOne({
+        where: { user_id: friend_id }
       });
-      
+
       if (!addresseeUser) {
         return res.status(404).json({
           success: false,
@@ -51,13 +52,13 @@ class FriendshipController {
       const existingFriendship = await FriendshipModel.findOne({
         where: {
           [Op.or]: [
-            { 
-              requester_id: requesterId, 
-              addressee_id: friend_id 
+            {
+              requester_id: requesterId,
+              addressee_id: friend_id
             },
-            { 
-              requester_id: friend_id, 
-              addressee_id: requesterId 
+            {
+              requester_id: friend_id,
+              addressee_id: requesterId
             }
           ]
         }
@@ -65,7 +66,7 @@ class FriendshipController {
 
       if (existingFriendship) {
         let message = '';
-        
+
         switch (existingFriendship.status) {
           case 'pending':
             if (existingFriendship.requester_id === requesterId) {
@@ -84,7 +85,7 @@ class FriendshipController {
             const daysSinceRejection = Math.floor(
               (new Date() - new Date(existingFriendship.responded_at)) / (1000 * 60 * 60 * 24)
             );
-            
+
             if (daysSinceRejection < 30) {
               message = `Solicitud previamente rechazada. Puedes reintentar en ${30 - daysSinceRejection} días.`;
             } else {
@@ -94,7 +95,7 @@ class FriendshipController {
             }
             break;
         }
-        
+
         if (message) {
           return res.status(400).json({
             success: false,
@@ -114,6 +115,23 @@ class FriendshipController {
       });
 
       console.log('✅ Solicitud de amistad enviada:', friendship.id);
+
+      // 📤 Publicar evento a RabbitMQ para notificación push
+      const requesterProfile = await UserProfileModel.findOne({
+        where: { user_id: requesterId },
+        attributes: ['username', 'display_name']
+      });
+
+      rabbitMQPublisher.publishEvent(
+        'FRIENDSHIP_REQUEST_SENT',
+        {
+          friendshipId: friendship.id,
+          senderUserId: requesterId,
+          senderUsername: requesterProfile?.display_name || requesterProfile?.username || 'Usuario',
+          recipientUserId: friend_id
+        },
+        'social.friendship.request_sent'
+      );
 
       res.status(201).json({
         success: true,
@@ -141,7 +159,7 @@ class FriendshipController {
       console.log('✅ AcceptFriendRequest - Friendship:', friendshipId, 'User:', userId);
 
       const friendship = await FriendshipModel.findByPk(friendshipId);
-      
+
       if (!friendship) {
         return res.status(404).json({
           success: false,
@@ -163,12 +181,29 @@ class FriendshipController {
         });
       }
 
-      await friendship.update({ 
+      await friendship.update({
         status: 'accepted',
         responded_at: new Date()
       });
 
       console.log('✅ Solicitud de amistad aceptada:', friendshipId);
+
+      // 📤 Publicar evento a RabbitMQ para notificación push
+      const accepterProfile = await UserProfileModel.findOne({
+        where: { user_id: userId },
+        attributes: ['username', 'display_name']
+      });
+
+      rabbitMQPublisher.publishEvent(
+        'FRIENDSHIP_REQUEST_ACCEPTED',
+        {
+          friendshipId: friendship.id,
+          acceptedByUserId: userId,
+          acceptedByUsername: accepterProfile?.display_name || accepterProfile?.username || 'Usuario',
+          recipientUserId: friendship.requester_id  // Notificar al que envió la solicitud
+        },
+        'social.friendship.request_accepted'
+      );
 
       res.status(200).json({
         success: true,
@@ -198,7 +233,7 @@ class FriendshipController {
       console.log('❌ RejectFriendRequest - Friendship:', friendshipId, 'User:', userId);
 
       const friendship = await FriendshipModel.findByPk(friendshipId);
-      
+
       if (!friendship) {
         return res.status(404).json({
           success: false,
@@ -244,7 +279,7 @@ class FriendshipController {
 
       console.log('📋 GetFriendRequests - User:', userId, 'Type:', type);
 
-      let whereCondition = { 
+      let whereCondition = {
         status: 'pending',
         is_active: true
       };
@@ -301,10 +336,10 @@ class FriendshipController {
       });
 
       const friends = rows.map(friendship => {
-        const friend_id = friendship.requester_id === userId 
-          ? friendship.addressee_id 
+        const friend_id = friendship.requester_id === userId
+          ? friendship.addressee_id
           : friendship.requester_id;
-        
+
         return {
           friendship_id: friendship.id,
           friend_id: friend_id,
@@ -421,7 +456,7 @@ class FriendshipController {
       console.log('🗑️ RemoveFriend - Friendship:', friendshipId, 'User:', userId);
 
       const friendship = await FriendshipModel.findByPk(friendshipId);
-      
+
       if (!friendship) {
         return res.status(404).json({
           success: false,
@@ -474,7 +509,7 @@ class FriendshipController {
       });
 
       if (friendship) {
-        await friendship.update({ 
+        await friendship.update({
           status: 'blocked',
           requester_id: userId,
           addressee_id: blocked_id
@@ -566,7 +601,7 @@ class FriendshipController {
   _handleError(res, error) {
     console.error('❌ Error en FriendshipController:', error.message);
     console.error('Stack:', error.stack);
-    
+
     if (error.name === 'SequelizeValidationError') {
       return res.status(400).json({
         success: false,
