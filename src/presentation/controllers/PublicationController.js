@@ -1,5 +1,6 @@
 const rabbitMQPublisher = require('../../infrastructure/messaging/RabbitMQPublisher');
 const { getPublicationFileUrl } = require('../../shared/utils/urlHelper');
+const { UserProfileModel } = require('../../infrastructure/database/models');
 
 class PublicationController {
   constructor(
@@ -215,12 +216,25 @@ class PublicationController {
         if (authorId !== finalUserId) {
           console.log(`📤 Publicando evento PUBLICATION_LIKED - User: ${finalUserId}, Author: ${authorId}, Publication: ${id}`);
 
+          // 🔥 Get display name from profile
+          let likerDisplayName = 'Alguien';
+          try {
+            const likerProfile = await UserProfileModel.findOne({
+              where: { user_id: finalUserId },
+              attributes: ['display_name', 'username']
+            });
+            likerDisplayName = likerProfile?.display_name || likerProfile?.username || 'Alguien';
+          } catch (e) {
+            console.log('⚠️ Could not get liker profile');
+          }
+
           rabbitMQPublisher.publishEvent(
             'PUBLICATION_LIKED',
             {
               userId: finalUserId,
               publicationId: id,
-              authorId: authorId
+              authorId: authorId,
+              likerDisplayName: likerDisplayName
             },
             'social.publication.liked'
           );
@@ -343,6 +357,18 @@ class PublicationController {
 
         // Solo notificar si el autor del comentario NO es el autor de la publicación
         if (publicationAuthorId && publicationAuthorId !== authorId) {
+          // 🔥 Get display name from profile
+          let commenterDisplayName = 'Alguien';
+          try {
+            const commenterProfile = await UserProfileModel.findOne({
+              where: { user_id: authorId },
+              attributes: ['display_name', 'username']
+            });
+            commenterDisplayName = commenterProfile?.display_name || commenterProfile?.username || 'Alguien';
+          } catch (e) {
+            console.log('⚠️ Could not get commenter profile');
+          }
+
           rabbitMQPublisher.publishEvent(
             'COMMENT_ADDED',
             {
@@ -351,7 +377,8 @@ class PublicationController {
               publicationId: publicationId,
               publicationAuthorId: publicationAuthorId,
               text: commentContent.substring(0, 100), // Preview
-              parentCommentId: parentCommentId || null
+              parentCommentId: parentCommentId || null,
+              commenterDisplayName: commenterDisplayName
             },
             'social.comment.added'
           );
