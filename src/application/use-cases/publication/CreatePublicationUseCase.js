@@ -1,6 +1,7 @@
 
 const Publication = require('../../../domain/aggregates/Publication/Publication');
 const { v4: uuidv4 } = require('uuid');
+const moderationService = require('../../../infrastructure/services/ModerationService');
 
 class CreatePublicationUseCase {
   constructor(publicationRepository, cloudinaryService) {
@@ -16,6 +17,19 @@ class CreatePublicationUseCase {
   async execute(data) {
     try {
       console.log('🚀 CreatePublicationUseCase - Datos recibidos:', data);
+
+      // 🔥 MODERACIÓN DE CONTENIDO
+      const contenido = data.content || data.text || '';
+      const moderacionTexto = moderationService.verificarTexto(contenido);
+
+      if (!moderacionTexto.esSeguro) {
+        throw new Error(`Contenido rechazado: ${moderacionTexto.razon}`);
+      }
+
+      if (moderacionTexto.esCrisis) {
+        console.log('⚠️ ALERTA CRISIS: Contenido detectado que puede indicar crisis emocional');
+        // TODO: Enviar alerta a sistema de monitoreo
+      }
 
       const publicationId = uuidv4();
 

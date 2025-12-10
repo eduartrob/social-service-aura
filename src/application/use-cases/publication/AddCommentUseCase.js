@@ -1,5 +1,7 @@
 
 
+const moderationService = require('../../../infrastructure/services/ModerationService');
+
 class AddCommentUseCase {
   constructor(publicationRepository) {
     this.publicationRepository = publicationRepository;
@@ -15,16 +17,28 @@ class AddCommentUseCase {
       // 1. Validaciones de entrada
       this._validateInput(data);
 
+      // 🔥 MODERACIÓN DE CONTENIDO
+      const moderacionTexto = moderationService.verificarTexto(text);
+
+      if (!moderacionTexto.esSeguro) {
+        throw new Error(`Comentario rechazado: ${moderacionTexto.razon}`);
+      }
+
+      if (moderacionTexto.esCrisis) {
+        console.log('⚠️ ALERTA CRISIS en comentario: Contenido detectado que puede indicar crisis emocional');
+        // TODO: Enviar alerta a sistema de monitoreo
+      }
+
       // 2. Obtener la publicación
       const publication = await this.publicationRepository.findById(publicationId);
-      
+
       if (!publication) {
         throw new Error('Publicación no encontrada');
       }
 
       // 3. Usar método del agregado (la lógica está ahí)
       const commentEvent = publication.addComment(authorId, text, parentCommentId);
-      
+
       // 4. Persistir cambios
       await this.publicationRepository.save(publication);
 
@@ -76,14 +90,14 @@ class DeleteCommentUseCase {
     try {
       // 1. Obtener la publicación
       const publication = await this.publicationRepository.findById(publicationId);
-      
+
       if (!publication) {
         throw new Error('Publicación no encontrada');
       }
 
       // 2. Usar método del agregado
       const deleteEvent = publication.deleteComment(commentId, userId);
-      
+
       // 3. Persistir cambios
       await this.publicationRepository.save(publication);
 

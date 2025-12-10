@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
 const axios = require('axios');
 const rabbitMQPublisher = require('../../infrastructure/messaging/RabbitMQPublisher');
+const moderationService = require('../../infrastructure/services/ModerationService');
 
 class CommunityController {
   constructor() {
@@ -161,6 +162,20 @@ class CommunityController {
         return res.status(400).json({
           success: false,
           message: 'Nombre y categoría son requeridos'
+        });
+      }
+
+      // 🔥 MODERACIÓN: Validar que la comunidad sea apropiada
+      const validacionComunidad = moderationService.verificarComunidad({
+        name,
+        description,
+        category
+      });
+
+      if (!validacionComunidad.esValida) {
+        return res.status(400).json({
+          success: false,
+          message: validacionComunidad.razon
         });
       }
 
