@@ -20,64 +20,64 @@ class AvailableUsersController {
 
       // 1. Obtener IDs de usuarios que NO deben mostrarse
       const excludedUserIds = await this._getExcludedUserIds(currentUserId);
-      
+
       console.log('   🚫 Usuarios excluidos:', excludedUserIds.length);
-      console.log('   IDs excluidos:', excludedUserIds);
 
-      // 2. Obtener todos los usuarios del Auth Service
-      const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
-      const authResponse = await axios.get(`${AUTH_SERVICE_URL}/api/auth/users/public`, {
-        headers: {
-          'Authorization': req.headers.authorization
+      // 2. 🔥 CHANGED: Query profiles directly from social-service database
+      // No longer depends on auth-service
+      const whereClause = {
+        user_id: {
+          [Op.notIn]: excludedUserIds
         }
-      });
+      };
 
-      if (!authResponse.data.success) {
-        throw new Error('Error obteniendo usuarios del servicio de autenticación');
-      }
-
-      let allUsers = authResponse.data.users || [];
-      console.log('   👥 Total usuarios del Auth Service:', allUsers.length);
-
-      // 3. Filtrar usuarios excluidos
-      let availableUsers = allUsers.filter(user => 
-        !excludedUserIds.includes(user.id)
-      );
-
-      console.log('   ✅ Usuarios disponibles (después de filtrar):', availableUsers.length);
-
-      // 4. Aplicar búsqueda si existe
+      // 3. Aplicar búsqueda si existe
       if (q && q.trim()) {
         const searchLower = q.toLowerCase().trim();
-        availableUsers = availableUsers.filter(user => {
-          const username = (user.username || '').toLowerCase();
-          const email = (user.email || '').toLowerCase();
-          const role = (user.role || '').toLowerCase();
-          
-          return username.includes(searchLower) || 
-                 email.includes(searchLower) || 
-                 role.includes(searchLower);
-        });
-        console.log('   🔍 Después de búsqueda:', availableUsers.length);
+        whereClause[Op.or] = [
+          { display_name: { [Op.iLike]: `%${searchLower}%` } },
+          { bio: { [Op.iLike]: `%${searchLower}%` } },
+          { location: { [Op.iLike]: `%${searchLower}%` } }
+        ];
       }
 
-      // 5. Enriquecer con perfiles del Social Service
-      const enrichedUsers = await this._enrichWithProfiles(availableUsers);
+      // 4. Get total count for pagination
+      const totalCount = await UserProfileModel.count({ where: whereClause });
 
-      // 6. Aplicar paginación
-      const totalCount = enrichedUsers.length;
-      const paginatedUsers = enrichedUsers.slice(
-        parseInt(offset), 
-        parseInt(offset) + parseInt(limit)
-      );
+      // 5. Fetch paginated profiles
+      const profiles = await UserProfileModel.findAll({
+        where: whereClause,
+        attributes: ['id', 'user_id', 'display_name', 'bio', 'avatar_url',
+          'location', 'website', 'birth_date', 'created_at'],
+        order: [['display_name', 'ASC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
 
-      console.log('   📄 Paginación: mostrando', paginatedUsers.length, 'de', totalCount);
+      console.log('   ✅ Perfiles encontrados:', profiles.length);
+
+      // 6. Format response
+      const users = profiles.map(profile => ({
+        id: profile.user_id,
+        username: profile.display_name || 'Usuario',
+        profile: {
+          id: profile.id,
+          display_name: profile.display_name,
+          bio: profile.bio,
+          avatar_url: profile.avatar_url,
+          location: profile.location,
+          website: profile.website,
+          birth_date: profile.birth_date
+        }
+      }));
+
+      console.log('   📄 Paginación: mostrando', users.length, 'de', totalCount);
 
       // 7. Retornar respuesta
       res.status(200).json({
         success: true,
         message: 'Usuarios disponibles obtenidos exitosamente',
-        users: paginatedUsers,
+        users: users,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -102,7 +102,7 @@ class AvailableUsersController {
   async _getExcludedUserIds(currentUserId) {
     try {
       const excludedIds = new Set();
-      
+
       // 1. Excluir al usuario actual
       excludedIds.add(currentUserId);
 
@@ -132,19 +132,19 @@ class AvailableUsersController {
             excludedIds.add(otherUserId);
             console.log('   ✅ Amigo excluido:', otherUserId);
             break;
-          
+
           case 'pending':
             // Solicitud pendiente - EXCLUIR
             excludedIds.add(otherUserId);
             console.log('   ⏳ Solicitud pendiente excluida:', otherUserId);
             break;
-          
+
           case 'blocked':
             // Usuario bloqueado - EXCLUIR
             excludedIds.add(otherUserId);
             console.log('   🚫 Bloqueado excluido:', otherUserId);
             break;
-          
+
           case 'rejected':
             // Solicitud rechazada - NO excluir (pueden reintentar después de 30 días)
             break;
@@ -171,8 +171,8 @@ class AvailableUsersController {
           // Buscar perfil en el Social Service
           const profile = await UserProfileModel.findOne({
             where: { user_id: user.id },
-            attributes: ['id', 'user_id', 'display_name', 'bio', 'avatar_url', 
-                        'location', 'website', 'birth_date']
+            attributes: ['id', 'user_id', 'display_name', 'bio', 'avatar_url',
+              'location', 'website', 'birth_date']
           });
 
           if (profile) {
@@ -217,7 +217,7 @@ class AvailableUsersController {
   _handleError(res, error) {
     console.error('❌ Error en AvailableUsersController:', error.message);
     console.error('Stack:', error.stack);
-    
+
     if (error.code === 'ECONNREFUSED') {
       return res.status(503).json({
         success: false,
