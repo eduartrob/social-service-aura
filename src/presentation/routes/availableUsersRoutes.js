@@ -98,7 +98,8 @@ const availableUsersController = new AvailableUsersController();
  *       500:
  *         description: Error del servidor
  */
-router.get('/', 
+// 🔥 Route: /available (mounted at /api/v1/users -> full path: /api/v1/users/available)
+router.get('/available',
   authMiddleware,
   availableUsersController.getAvailableUsers.bind(availableUsersController)
 );

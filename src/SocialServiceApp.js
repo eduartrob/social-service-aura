@@ -197,12 +197,16 @@ class SocialServiceApp {
     const preferencesRoutes = require('./presentation/routes/preferencesRoutes');
     const completeProfileRoutes = require('./presentation/routes/completeProfileRoutes');
     const friendshipRoutes = require('./presentation/routes/friendshipRoutes');
+    // 🔥 ADDED: Import availableUsersRoutes for /users/available endpoint
+    const availableUsersRoutes = require('./presentation/routes/availableUsersRoutes');
 
     this.app.use('/api/v1', profileRoutes);
     this.app.use('/api/v1/communities', communityRoutes);
     this.app.use('/api/v1/preferences', preferencesRoutes);
     this.app.use('/api/v1/complete-profile', completeProfileRoutes);
     this.app.use('/api/v1/friendships', friendshipRoutes);
+    // 🔥 ADDED: Mount availableUsersRoutes at /api/v1/users
+    this.app.use('/api/v1/users', availableUsersRoutes);
 
     this.app.get('/api/v1', (req, res) => {
       res.json({
@@ -216,6 +220,7 @@ class SocialServiceApp {
           preferences: '/api/v1/preferences',
           completeProfile: '/api/v1/complete-profile',
           friendships: '/api/v1/friendships',
+          users: '/api/v1/users',  // 🔥 ADDED
           comments: '/api/v1/comments',
           likes: '/api/v1/likes'
         },
