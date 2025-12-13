@@ -1,6 +1,7 @@
+# syntax=docker/dockerfile:1.4
 # ============================================
 # Social Service - Dockerfile
-# Multi-stage build for production
+# OPTIMIZED: BuildKit cache mounts
 # ============================================
 
 # Stage 1: Build Dependencies
@@ -14,8 +15,9 @@ RUN apk add --no-cache python3 make g++
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci
+# Install all dependencies with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
 
 # Copy source code
 COPY . .
@@ -41,8 +43,9 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install only production dependencies with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --omit=dev
 
 # Copy source from builder
 COPY --from=builder --chown=nodejs:nodejs /app/src ./src/
