@@ -17,7 +17,7 @@ COPY package*.json ./
 
 # Install all dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline
+    npm install
 
 # Copy source code
 COPY . .
@@ -45,7 +45,7 @@ COPY package*.json ./
 
 # Install only production dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --omit=dev
+    npm install --omit=dev
 
 # Copy source from builder
 COPY --from=builder --chown=nodejs:nodejs /app/src ./src/
